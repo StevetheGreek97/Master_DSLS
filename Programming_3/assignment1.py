@@ -41,7 +41,7 @@ def review_ids(pmid):
 
 def write(abstracts, names):
     for i in range(len(abstracts)):
-        save_path_file = names[i] + ".xml"
+        save_path_file = 'output/' + names[i] + ".xml"
         with open(save_path_file, "wb") as f:
                 f.write(abstracts[i])
 
