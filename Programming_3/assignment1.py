@@ -1,69 +1,57 @@
 from Bio import Entrez
-import multiprocessing.dummy as mp
-import multiprocessing as mp1
+import multiprocessing as mp
 import sys
+import time 
 
 Entrez.api_key = 'c01cb5f0a7a067a2fe5e57a845b52934c708'
 Entrez.email  = "stylianosmavrianos@gmail.com"
 
 
 
-def print_abstract(pmid):
-    handle = Entrez.efetch(db='pubmed', id=pmid, retmode='text', rettype='XML')
-    read = handle.read()
-    return read
+def write(pmid):
+    handle = Entrez.efetch(db="pmc", id=pmid, rettype="XML", retmode="text",
+                           api_key='c01cb5f0a7a067a2fe5e57a845b52934c708')
 
-def find_PMID(pmid):
 
-    ids = []
-    index = find_index(pmid)
-    record = Entrez.read(Entrez.elink(dbfrom="pubmed", id=pmid))
-
-    for link in record[0]["LinkSetDb"][index]["Link"]:
-        ids.append(link["Id"])
-    return ids
-
-def find_index(pmid):
-    dd = review_ids(pmid)
-    for i in range(len(dd.keys())):
-        if list(dd.keys())[i] =='pubmed_pubmed_refs':
-            return i 
+    with open(f'output/{pmid}.xml', 'wb') as file:
+        file.write(handle.read())
+        print("Downloading file:" , pmid)
 
 
 
-def review_ids(pmid):
-    identidier = {}
-    record = Entrez.read(Entrez.elink(dbfrom="pubmed", id=pmid))
-    for linksetdb in record[0]["LinkSetDb"]:
-        identidier[linksetdb["LinkName"]] =len(linksetdb["Link"])
-    return identidier
+def get_ref(pmid):
+    results = Entrez.read(Entrez.elink(dbfrom="pubmed",
+                                db="pmc", 
+                                LinkName = "pubmed_pmc_refs",
+                                id = pmid,
+                                api_key='c01cb5f0a7a067a2fe5e57a845b52934c708'))
 
+    references = [f'{link["Id"]}' for link in results[0]["LinkSetDb"][0]["Link"]]
+    return references
 
-def write(abstracts, names):
-    for i in range(len(abstracts)):
-        save_path_file = 'output/' + names[i] + ".xml"
-        with open(save_path_file, "wb") as f:
-                f.write(abstracts[i])
 
 
 
 def main():
     # call: python assignment1.py 33669327
     pmid = sys.argv[1]
-    cpus =  mp1.cpu_count()
+    cpus =  mp.cpu_count()
 
+    ids = get_ref(pmid)
 
-    ids = find_PMID(pmid)
-    ten_ids = ids[0:10]
-
+    start_time = int(round(time.time()) *1000)
 
     with mp.Pool(cpus) as pool:
-        result = pool.map(print_abstract, ten_ids)
+        pool.map(write, ids[:10])
+    stop_time = int(round(time.time())*1000)
 
-    write(result, ten_ids)
+    print('Time consumed:',stop_time- start_time, 'ms')
+
+
 
 
 
 if __name__ == "__main__":
     main()
+    
     print('Finish!!!')
